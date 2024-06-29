@@ -32,9 +32,11 @@ contract Trybe {
         uint256 totalNoOfImages; // Total number of images in the album
     }
 
-    mapping(uint256 => Album) public album;
-    mapping(uint256 => mapping(uint256 => Image)) public imagesInAlbum; // Map album ID to images
+    mapping (uint256 => Album) public album;
+    mapping (address => string[]) public images;
+    mapping (uint256 => mapping (uint256 => Image)) public imagesInAlbum; // Map album ID to images
 
+    event Upload(address indexed user, string url, uint256 createdAt);
     event AlbumCreated(address indexed creator, string nameOfAlbum, uint256 albumId);
     event JoinedAlbum(address indexed participant, uint256 timeJoined);
     event ImageAdded(uint256 albumId, uint256 imageId);
@@ -48,6 +50,19 @@ contract Trybe {
     modifier onlyOwner {
         require(msg.sender == owner, "Only owner can call this function.");
         _;
+    }
+
+    function upload(string memory url) public {
+        require(msg.sender != address(0), "No zero addresses allowed.");
+        require(bytes(url).length > 0, "Please add a url.");
+
+        images[msg.sender].push(url);
+
+        emit Upload(msg.sender, url, block.timestamp);
+    }
+
+    function getImages() public view returns (string[] memory) {
+        return images[msg.sender];
     }
 
     function createAlbum(
@@ -146,11 +161,11 @@ contract Trybe {
         Album storage _album = album[albumId];
         require(_album.visibility == 0, "This is a private album.");
 
-        Image[] memory images = new Image[](_album.totalNoOfImages);
+        Image[] memory _images = new Image[](_album.totalNoOfImages);
         for (uint256 i = 1; i <= _album.totalNoOfImages; i++) {
-            images[i - 1] = imagesInAlbum[albumId][i];
+            _images[i - 1] = imagesInAlbum[albumId][i];
         }
-        return images;
+        return _images;
     }
 
     function getImageInPublicAlbum(uint256 albumId, uint256 imageId) public view returns (Image memory) {
@@ -178,11 +193,11 @@ contract Trybe {
         (bool os1, ) = payable(owner).call{value: _fee}("");
         require(os1, "Fee payment to trybe owner failed.");
 
-        Image[] memory images = new Image[](_album.totalNoOfImages);
+        Image[] memory _images = new Image[](_album.totalNoOfImages);
         for (uint256 i = 1; i <= _album.totalNoOfImages; i++) {
-            images[i - 1] = imagesInAlbum[albumId][i];
+            _images[i - 1] = imagesInAlbum[albumId][i];
         }
-        return images;
+        return _images;
     }
 
     function getImageInPrivateAlbum(uint256 albumId, uint256 imageId) public payable returns (Image memory) {

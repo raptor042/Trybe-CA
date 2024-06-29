@@ -19,7 +19,7 @@ module.exports = {
       viaIR: true
     }
   },
-  defaultNetwork: "sepolia",
+  defaultNetwork: "base_sepolia",
   networks: {
     hardhat: {},
     base_mainnet: {
