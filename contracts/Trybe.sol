@@ -32,6 +32,8 @@ contract Trybe {
         uint256 totalNoOfImages; // Total number of images in the album
     }
 
+    Album[] public albums;
+
     mapping (uint256 => Album) public album;
     mapping (address => string[]) public images;
     mapping (uint256 => mapping (uint256 => Image)) public imagesInAlbum; // Map album ID to images
@@ -63,6 +65,37 @@ contract Trybe {
 
     function getImages() public view returns (string[] memory) {
         return images[msg.sender];
+    }
+
+    function getAlbums() public view returns (Album[] memory) {
+        uint256 count = 0;
+        
+        // Determine the size of _albums array
+        for (uint256 x = 0; x < albums.length; x++) {
+            for (uint256 y = 0; y < albums[x].participants.length; y++) {
+                if (albums[x].participants[y] == msg.sender) {
+                    count++;
+                    break; // break the inner loop as soon as participant found
+                }
+            }
+        }
+        
+        // Create _albums array with the correct size
+        Album[] memory _albums = new Album[](count);
+        uint256 index = 0;
+
+        // Populate _albums array with albums where msg.sender is a participant
+        for (uint256 x = 0; x < albums.length; x++) {
+            for (uint256 y = 0; y < albums[x].participants.length; y++) {
+                if (albums[x].participants[y] == msg.sender) {
+                    _albums[index] = albums[x];
+                    index++;
+                    break; // break the inner loop as soon as participant found
+                }
+            }
+        }
+        
+        return _albums;
     }
 
     function createAlbum(
@@ -97,6 +130,8 @@ contract Trybe {
         _album.participants = participants;
         _album.totalNoOfImages = 0;
 
+        albums.push(_album);
+
         emit AlbumCreated(msg.sender, _name, totalNoOfAlbumsCreated);
     }
 
@@ -107,6 +142,13 @@ contract Trybe {
         require(_album.visibility == 0 || msg.value >= _album.fee, "This is a private album.");
         
         _album.participants.push(msg.sender);
+
+        for (uint i = 0; i < albums.length; i++) {
+            if(albums[i].id == albumId) {
+                albums[i].participants.push(msg.sender);
+                break;
+            }
+        }
 
         if (_album.visibility == 1) {
             uint256 _fee = (fee * msg.value) / 100;
@@ -148,11 +190,28 @@ contract Trybe {
             description: _description
         });
 
+        for (uint i = 0; i < albums.length; i++) {
+            if(albums[i].id == albumId) {
+                albums[i].totalNoOfImages++;
+                break;
+            }
+        }
+
         emit ImageAdded(albumId, _album.totalNoOfImages);
     }
 
     function getAlbum(uint256 albumId) public view returns (Album memory) {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
+
+        bool isParticipant = false;
+        for (uint256 i = 0; i < album[albumId].participants.length; i++) {
+            if (album[albumId].participants[i] == msg.sender) {
+                isParticipant = true;
+                break;
+            }
+        }
+        require(isParticipant, "Only those who have joined the album see the album.");
+
         return album[albumId];
     }
 
@@ -182,7 +241,7 @@ contract Trybe {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility == 1 && msg.value >= _album.fee, "This is a public album.");
+        require(_album.visibility == 1 && msg.value >= _album.fee, "This is not a public album.");
 
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
@@ -205,7 +264,7 @@ contract Trybe {
         require(imageId > 0 && imageId <= album[albumId].totalNoOfImages, "This image does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility == 1 && msg.value >= _album.fee, "This is a public album.");
+        require(_album.visibility == 1 && msg.value >= _album.fee, "This is not a public album.");
 
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
