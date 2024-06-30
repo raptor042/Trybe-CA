@@ -258,7 +258,7 @@ contract Trybe {
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
 
-        (bool os, ) = payable(_album.owner).call{value: balance}("");
+        (bool os, ) = payable(_image.owner).call{value: balance}("");
         require(os, "Fee payment to album owner failed.");
 
         (bool os1, ) = payable(owner).call{value: _fee}("");
