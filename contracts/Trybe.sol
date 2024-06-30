@@ -32,11 +32,11 @@ contract Trybe {
         uint256 totalNoOfImages; // Total number of images in the album
     }
 
-    Album[] public albums;
+    Album[] private albums;
 
-    mapping (uint256 => Album) public album;
-    mapping (address => string[]) public images;
-    mapping (uint256 => mapping (uint256 => Image)) public imagesInAlbum; // Map album ID to images
+    mapping (uint256 => Album) private album;
+    mapping (address => string[]) private images;
+    mapping (uint256 => mapping (uint256 => Image)) private imagesInAlbum; // Map album ID to images
 
     event Upload(address indexed user, string url, uint256 createdAt);
     event AlbumCreated(address indexed creator, string nameOfAlbum, uint256 albumId);
@@ -203,6 +203,13 @@ contract Trybe {
     function getAlbum(uint256 albumId) public view returns (Album memory) {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
+        return album[albumId];
+    }
+
+    function getImagesInAlbum(uint256 albumId) public view returns (Image[] memory) {
+        require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
+        Album storage _album = album[albumId];
+
         bool isParticipant = false;
         for (uint256 i = 0; i < album[albumId].participants.length; i++) {
             if (album[albumId].participants[i] == msg.sender) {
@@ -212,14 +219,6 @@ contract Trybe {
         }
         require(isParticipant, "Only those who have joined the album see the album.");
 
-        return album[albumId];
-    }
-
-    function getImagesInPublicAlbum(uint256 albumId) public view returns (Image[] memory) {
-        require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
-        Album storage _album = album[albumId];
-        require(_album.visibility == 0, "This is a private album.");
-
         Image[] memory _images = new Image[](_album.totalNoOfImages);
         for (uint256 i = 1; i <= _album.totalNoOfImages; i++) {
             _images[i - 1] = imagesInAlbum[albumId][i];
@@ -227,21 +226,27 @@ contract Trybe {
         return _images;
     }
 
-    function getImageInPublicAlbum(uint256 albumId, uint256 imageId) public view returns (Image memory) {
+    function getImageInAlbum(uint256 albumId, uint256 imageId) public view returns (Image memory) {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
         require(imageId > 0 && imageId <= album[albumId].totalNoOfImages, "This image does not exist");
 
-        Album storage _album = album[albumId];
-        require(_album.visibility == 0, "This is a private album.");
+        bool isParticipant = false;
+        for (uint256 i = 0; i < album[albumId].participants.length; i++) {
+            if (album[albumId].participants[i] == msg.sender) {
+                isParticipant = true;
+                break;
+            }
+        }
+        require(isParticipant, "Only those who have joined the album see the album.");
 
         return imagesInAlbum[albumId][imageId];
     }
 
-    function getImagesInPrivateAlbum(uint256 albumId) public payable returns (Image[] memory) {
+    function download(uint256 albumId) public payable {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility == 1 && msg.value >= _album.fee, "This is not a public album.");
+        require(_album.visibility == 0 || msg.value >= _album.fee, "This is a private album image.");
 
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
@@ -251,31 +256,6 @@ contract Trybe {
 
         (bool os1, ) = payable(owner).call{value: _fee}("");
         require(os1, "Fee payment to trybe owner failed.");
-
-        Image[] memory _images = new Image[](_album.totalNoOfImages);
-        for (uint256 i = 1; i <= _album.totalNoOfImages; i++) {
-            _images[i - 1] = imagesInAlbum[albumId][i];
-        }
-        return _images;
-    }
-
-    function getImageInPrivateAlbum(uint256 albumId, uint256 imageId) public payable returns (Image memory) {
-        require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
-        require(imageId > 0 && imageId <= album[albumId].totalNoOfImages, "This image does not exist");
-
-        Album storage _album = album[albumId];
-        require(_album.visibility == 1 && msg.value >= _album.fee, "This is not a public album.");
-
-        uint256 _fee = (fee * msg.value) / 100;
-        uint256 balance = msg.value - _fee;
-
-        (bool os, ) = payable(_album.owner).call{value: balance}("");
-        require(os, "Fee payment to album owner failed.");
-
-        (bool os1, ) = payable(owner).call{value: _fee}("");
-        require(os1, "Fee payment to trybe owner failed.");
-
-        return imagesInAlbum[albumId][imageId];
     }
 
     function getListofParticipants(uint256 albumId) public view returns (address[] memory) {
