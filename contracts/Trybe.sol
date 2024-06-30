@@ -40,7 +40,7 @@ contract Trybe {
     mapping (address => string[]) private images;
     mapping (uint256 => mapping (uint256 => Image)) private imagesInAlbum; // Map album ID to images
 
-    event Upload(address indexed user, string url, uint256 createdAt);
+    event Upload(address indexed user, uint256 createdAt);
     event AlbumCreated(address indexed creator, string nameOfAlbum, uint256 albumId);
     event JoinedAlbum(address indexed participant, uint256 timeJoined);
     event ImageAdded(uint256 albumId, uint256 imageId);
@@ -57,13 +57,14 @@ contract Trybe {
         _;
     }
 
-    function upload(string memory url) public {
+    function upload(string[] memory urls) public {
         require(msg.sender != address(0), "No zero addresses allowed.");
-        require(bytes(url).length > 0, "Please add a url.");
 
-        images[msg.sender].push(url);
+        for (uint256 i = 0; i < urls.length; i++) {
+            images[msg.sender].push(urls[i]);
+        }
 
-        emit Upload(msg.sender, url, block.timestamp);
+        emit Upload(msg.sender, block.timestamp);
     }
 
     function getImages() public view returns (string[] memory) {
@@ -169,14 +170,13 @@ contract Trybe {
 
     function addImageToAlbum(
         uint256 albumId,
-        string memory _url,
-        string memory _description,
+        string[] memory urls,
+        string[] memory descriptions,
         uint256 _fee
     ) public {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        _album.totalNoOfImages++;
 
         bool isParticipant = false;
         for (uint256 i = 0; i < _album.participants.length; i++) {
@@ -187,20 +187,32 @@ contract Trybe {
         }
         require(isParticipant, "Only those who have joined the album can add an image.");
 
-        imagesInAlbum[albumId][_album.totalNoOfImages] = Image({
-            owner: msg.sender,
-            id: _album.totalNoOfImages,
-            url: _url,
-            description: _description,
-            created: block.timestamp,
-            fee: _album.visibility ? 0 : (_fee * 1 ether) / 100
-        });
+        // imagesInAlbum[albumId][_album.totalNoOfImages] = Image({
+        //     owner: msg.sender,
+        //     id: _album.totalNoOfImages,
+        //     url: _url,
+        //     description: _description,
+        //     created: block.timestamp,
+        //     fee: _album.visibility ? 0 : (_fee * 1 ether) / 1000
+        // });
 
-        for (uint i = 0; i < albums.length; i++) {
-            if(albums[i].id == albumId) {
-                albums[i].totalNoOfImages++;
-                break;
+        for (uint256 i = 0; i < urls.length; i++) {
+            _album.totalNoOfImages++;
+            for (uint a = 0; a < albums.length; a++) {
+                if(albums[a].id == albumId) {
+                    albums[a].totalNoOfImages++;
+                    break;
+                }
             }
+
+            imagesInAlbum[albumId][_album.totalNoOfImages] = Image({
+                owner: msg.sender,
+                id: _album.totalNoOfImages,
+                url: urls[i],
+                description: descriptions[i],
+                created: block.timestamp,
+                fee: _album.visibility ? 0 : (_fee * 1 ether) / 1000
+            });
         }
 
         emit ImageAdded(albumId, _album.totalNoOfImages);
