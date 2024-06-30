@@ -22,7 +22,7 @@ contract Trybe {
 
     struct Album {
         uint256 id;
-        uint8 visibility; // "public" or "private"
+        bool visibility; // "public == true" or "private == false"
         uint256 fee; // Fee to join or access images in a private album
         address owner; // Owner of the album
         string name; // Name of the album
@@ -43,6 +43,7 @@ contract Trybe {
     event AlbumCreated(address indexed creator, string nameOfAlbum, uint256 albumId);
     event JoinedAlbum(address indexed participant, uint256 timeJoined);
     event ImageAdded(uint256 albumId, uint256 imageId);
+    event ImageDownloaded(uint256 albumId, uint256 imageId);
 
     constructor(uint _fee) {
         owner = msg.sender;
@@ -104,7 +105,7 @@ contract Trybe {
         string memory description,
         address[] memory _participants,
         string memory _image,
-        uint8 visibility,
+        bool visibility,
         uint256 _fee
     ) public {
         require(msg.sender != address(0), "No zero addresses allowed.");
@@ -122,7 +123,7 @@ contract Trybe {
         Album storage _album = album[totalNoOfAlbumsCreated];
         _album.id = totalNoOfAlbumsCreated;
         _album.visibility = visibility;
-        _album.fee = visibility == 1 ? (_fee * 1 ether) / 1000 : 0;
+        _album.fee = visibility ? 0 : (_fee * 1 ether) / 1000;
         _album.owner = msg.sender;
         _album.name = _name;
         _album.description = description;
@@ -140,7 +141,7 @@ contract Trybe {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility == 0 || msg.value >= _album.fee, "This is a private album.");
+        require(_album.visibility || msg.value >= _album.fee, "This is a private album.");
         
         _album.participants.push(msg.sender);
 
@@ -151,7 +152,7 @@ contract Trybe {
             }
         }
 
-        if (_album.visibility == 1) {
+        if (_album.visibility) {
             uint256 _fee = (fee * msg.value) / 100;
             uint256 balance = msg.value - _fee;
 
@@ -244,11 +245,11 @@ contract Trybe {
         return imagesInAlbum[albumId][imageId];
     }
 
-    function download(uint256 albumId) public payable {
+    function download(uint256 albumId, uint256 imageId) public payable {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility == 0 || msg.value >= _album.fee, "This is a private album image.");
+        require(_album.visibility || msg.value >= _album.fee, "This is a private album image.");
 
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
@@ -258,6 +259,8 @@ contract Trybe {
 
         (bool os1, ) = payable(owner).call{value: _fee}("");
         require(os1, "Fee payment to trybe owner failed.");
+
+        emit ImageDownloaded(albumId, imageId);
     }
 
     function getListofParticipants(uint256 albumId) public view returns (address[] memory) {
