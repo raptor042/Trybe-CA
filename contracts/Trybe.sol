@@ -18,6 +18,7 @@ contract Trybe {
         string description; // Description of the image
         address owner; // The address of the participant that posted it
         uint256 created; // Timestamp when the memory was created
+        uint256 fee;
     }
 
     struct Album {
@@ -169,7 +170,8 @@ contract Trybe {
     function addImageToAlbum(
         uint256 albumId,
         string memory _url,
-        string memory _description
+        string memory _description,
+        uint256 _fee
     ) public {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
@@ -190,7 +192,8 @@ contract Trybe {
             id: _album.totalNoOfImages,
             url: _url,
             description: _description,
-            created: block.timestamp
+            created: block.timestamp,
+            fee: _album.visibility ? 0 : (_fee * 1 ether) / 100
         });
 
         for (uint i = 0; i < albums.length; i++) {
@@ -249,7 +252,8 @@ contract Trybe {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
 
         Album storage _album = album[albumId];
-        require(_album.visibility || msg.value >= _album.fee, "This is a private album image.");
+        Image storage _image = imagesInAlbum[albumId][imageId];
+        require(_album.visibility || msg.value >= _image.fee, "This is a private album image.");
 
         uint256 _fee = (fee * msg.value) / 100;
         uint256 balance = msg.value - _fee;
