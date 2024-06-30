@@ -171,7 +171,7 @@ contract Trybe {
     function addImageToAlbum(
         uint256 albumId,
         string[] memory urls,
-        string[] memory descriptions,
+        string memory description,
         uint256 _fee
     ) public {
         require(albumId > 0 && albumId <= totalNoOfAlbumsCreated, "This album does not exist");
@@ -209,7 +209,7 @@ contract Trybe {
                 owner: msg.sender,
                 id: _album.totalNoOfImages,
                 url: urls[i],
-                description: descriptions[i],
+                description: description,
                 created: block.timestamp,
                 fee: _album.visibility ? 0 : (_fee * 1 ether) / 1000
             });
