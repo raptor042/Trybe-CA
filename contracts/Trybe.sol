@@ -187,15 +187,6 @@ contract Trybe {
         }
         require(isParticipant, "Only those who have joined the album can add an image.");
 
-        // imagesInAlbum[albumId][_album.totalNoOfImages] = Image({
-        //     owner: msg.sender,
-        //     id: _album.totalNoOfImages,
-        //     url: _url,
-        //     description: _description,
-        //     created: block.timestamp,
-        //     fee: _album.visibility ? 0 : (_fee * 1 ether) / 1000
-        // });
-
         for (uint256 i = 0; i < urls.length; i++) {
             _album.totalNoOfImages++;
             for (uint a = 0; a < albums.length; a++) {
@@ -205,7 +196,7 @@ contract Trybe {
                 }
             }
 
-            imagesInAlbum[albumId][_album.totalNoOfImages] = Image({
+            imagesInAlbum[albumId][_album.totalNoOfImages + i] = Image({
                 owner: msg.sender,
                 id: _album.totalNoOfImages,
                 url: urls[i],
