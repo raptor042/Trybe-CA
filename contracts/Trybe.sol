@@ -17,6 +17,7 @@ contract Trybe {
         string url; // Carries the url of this image stored in IPFS
         string description; // Description of the image
         address owner; // The address of the participant that posted it
+        uint256 created; // Timestamp when the memory was created
     }
 
     struct Album {
@@ -187,7 +188,8 @@ contract Trybe {
             owner: msg.sender,
             id: _album.totalNoOfImages,
             url: _url,
-            description: _description
+            description: _description,
+            created: block.timestamp
         });
 
         for (uint i = 0; i < albums.length; i++) {
