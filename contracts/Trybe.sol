@@ -192,13 +192,12 @@ contract Trybe {
             for (uint a = 0; a < albums.length; a++) {
                 if(albums[a].id == albumId) {
                     albums[a].totalNoOfImages++;
-                    break;
                 }
             }
 
             imagesInAlbum[albumId][_album.totalNoOfImages + i] = Image({
                 owner: msg.sender,
-                id: _album.totalNoOfImages,
+                id: _album.totalNoOfImages + i,
                 url: urls[i],
                 description: description,
                 created: block.timestamp,
