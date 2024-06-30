@@ -121,7 +121,7 @@ contract Trybe {
         Album storage _album = album[totalNoOfAlbumsCreated];
         _album.id = totalNoOfAlbumsCreated;
         _album.visibility = visibility;
-        _album.fee = visibility == 1 ? _fee * 1 ether : 0;
+        _album.fee = visibility == 1 ? (_fee * 1 ether) / 1000 : 0;
         _album.owner = msg.sender;
         _album.name = _name;
         _album.description = description;
