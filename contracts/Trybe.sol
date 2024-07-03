@@ -152,7 +152,7 @@ contract Trybe {
             }
         }
 
-        if (_album.visibility) {
+        if (!_album.visibility) {
             uint256 _fee = (fee * msg.value) / 100;
             uint256 balance = msg.value - _fee;
 
@@ -254,14 +254,18 @@ contract Trybe {
         Image storage _image = imagesInAlbum[albumId][imageId];
         require(_album.visibility || msg.value >= _image.fee, "This is a private album image.");
 
-        uint256 _fee = (fee * msg.value) / 100;
-        uint256 balance = msg.value - _fee;
+        images[msg.sender].push(_image.url);
 
-        (bool os, ) = payable(_image.owner).call{value: balance}("");
-        require(os, "Fee payment to album owner failed.");
+        if (!_album.visibility) {
+            uint256 _fee = (fee * msg.value) / 100;
+            uint256 balance = msg.value - _fee;
 
-        (bool os1, ) = payable(owner).call{value: _fee}("");
-        require(os1, "Fee payment to trybe owner failed.");
+            (bool os, ) = payable(_image.owner).call{value: balance}("");
+            require(os, "Fee payment to album owner failed.");
+
+            (bool os1, ) = payable(owner).call{value: _fee}("");
+            require(os1, "Fee payment to trybe owner failed.");
+        }
 
         emit ImageDownloaded(albumId, imageId);
     }
